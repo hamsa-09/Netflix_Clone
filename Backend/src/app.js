@@ -2,13 +2,19 @@ import express from "express";
 import {env} from "./config/env.js"
 import morgan from "morgan";
 import {connectDB} from "./config/db.js"
-import logger from "./config/logger.js"
+import cookieParser from "cookie-parser"
+import errorHandler from "./middleware/errormiddleware.js";
+import router from "./routes/authRoutes.js";
+
 
 const app=express();
 connectDB();
+
 if(env.NODE_ENV==="development"){
     app.use(morgan("dev"));
 }
 app.use(express.json());
-
+app.use(cookieParser())
+app.use("/api/auth",router)
+app.use(errorHandler)
 export default app;
