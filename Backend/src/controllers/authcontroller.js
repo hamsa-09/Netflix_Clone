@@ -1,8 +1,8 @@
 import User from '../models/User.js';
-import {generateToken} from '../utils/generateToken.js';
+import { generateToken } from '../utils/generateToken.js';
 
 // Register User
-export const registerUser = async (req, res,next) => {
+export const registerUser = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
         const userExists = await User.findOne({ email });
@@ -11,12 +11,19 @@ export const registerUser = async (req, res,next) => {
             throw new Error('User already exists');
         }
         const user = await User.create({ name, email, password });
-        const payload={
-            id:user._id,
-            name:user.name,
-            email:user.email
-        }
-        generateToken(res, payload);
+        const payload = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+        };
+        const token=generateToken(payload);
+        res.cookie('jwt',token,{
+        httpOnly:true,
+        secure:false,
+        sameSite:"Lax",
+        path:"/",
+        maxAge:3600*2000
+    })
         res.status(201).json({
             _id: user.id,
             name: user.name,
@@ -35,45 +42,51 @@ export const loginUser = async (req, res, next) => {
 
         if (!user) {
             res.status(401);
-            throw new Error("Invalid email or password");
+            throw new Error('Invalid email or password');
         }
 
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
             res.status(401);
-            throw new Error("Invalid email or password");
+            throw new Error('Invalid email or password');
         }
 
         const payload = {
             id: user._id,
             name: user.name,
-            email: user.email
+            email: user.email,
         };
 
-        generateToken(res, payload);
-
+        const token=generateToken(payload);
+        res.cookie('jwt',token,{
+        httpOnly:true,
+        secure:false,
+        sameSite:"Lax",
+        path:"/",
+        maxAge:3600*2000
+        })
         res.json({
             name: user.name,
             email: user.email,
-            message:"User Logined successfully"
+            message: 'User Logined successfully',
         });
     } catch (err) {
         next(err);
     }
 };
 
-
 // logout
-export const logoutUser=(req,res,next)=>{
-    try{
-        res.cookie("jwt","",{
-            httpOnly:true,
-            expires:new Date(0),
-        })
-        return res.status(200).json({ message: "Logged out successfully" });
-    }
-    catch(err){
+export const logoutUser = (req, res, next) => {
+    try {
+        res.clearCookie('jwt', {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'Lax',
+            path: '/',
+        });
+        return res.status(200).json({ message: 'Logged out successfully' });
+    } catch (err) {
         next(err);
     }
-}
+};
